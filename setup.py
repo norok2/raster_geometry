@@ -130,9 +130,9 @@ setup(
         'Programming Language :: Python :: 3',
     ],
 
-    keywords=(
+    keywords=[
         'geometry', 'geometric', 'raster', 'shape', 'pixel', 'voxel',
-        'render', 'mask'),
+        'render', 'mask'],
 
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
 
