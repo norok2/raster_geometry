@@ -68,6 +68,10 @@ print(MY_GREETINGS)
 PATH = pkg_paths(__file__, INFO['name'], INFO['author'], INFO['version'])
 
 # ======================================================================
+# : populate namespace
+from raster_geometry.raster_geometry import *
+
+# ======================================================================
 elapsed(__file__[len(os.path.dirname(PATH['base'])) + 1:])
 
 # ======================================================================
