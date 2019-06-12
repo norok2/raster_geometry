@@ -62,7 +62,7 @@ MY_GREETINGS = r"""
 # generated with: figlet 'Raster Geometry' -f standard
 
 # :: Causes the greetings to be printed any time the library is loaded.
-print(MY_GREETINGS)
+# print(MY_GREETINGS)
 
 # ======================================================================
 PATH = pkg_paths(__file__, INFO['name'], INFO['author'], INFO['version'])
