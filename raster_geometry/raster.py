@@ -34,11 +34,11 @@ from __future__ import (
 # ======================================================================
 # :: Python Standard Library Imports
 # import os  # Miscellaneous operating system interfaces
-import itertools  # Functions creating iterators for efficient looping
-import functools  # Higher-order functions and operations on callable objects
+# import itertools  # Functions creating iterators for efficient looping
+# import functools  # Higher-order functions and operations on callable objects
 import warnings  # Warning control
-import random  # Generate pseudo-random numbers
-import doctest  # Test interactive Python examples
+# import random  # Generate pseudo-random numbers
+# import doctest  # Test interactive Python examples
 
 # :: External Imports
 import numpy as np  # NumPy (multidimensional numerical arrays library)
@@ -560,6 +560,7 @@ def polygon(
             in a different simple polygon.
             For convex polygons, such ambiguity does not exists.
         filling (bool): Fill the points inside the polygon.
+            Only works for convex polygons.
         rel_position (bool): Interpret positions as relative values.
             If True, position values are interpreted as relative,
             i.e. they are scaled for `shape` values.
@@ -582,6 +583,15 @@ def polygon(
          [False False False False False False False False False]]
         >>> print(polygon(
         ...    (9, 9), ((0.2, 0.2), (0.2, 0.8), (0.7, 0.5)), filling=True))
+        [[False False False False False False False False False]
+         [False  True  True  True  True  True  True  True False]
+         [False False  True  True  True  True  True False False]
+         [False False  True  True  True  True  True False False]
+         [False False False  True  True  True False False False]
+         [False False False  True  True  True False False False]
+         [False False False False  True False False False False]
+         [False False False False False False False False False]
+         [False False False False False False False False False]]
     """
     n_dim = 2
     shape = fc.base.auto_repeat(shape, n_dim, check=True)
@@ -599,10 +609,9 @@ def polygon(
     # : render polygon
     points = bresenham_lines(coords, True)
     if filling:
-        print(set(points))
-        points = bresenham_lines(list(points), True)
-        print(points)
-    return render_at(shape, set(points))
+        return fill_convex(render_at(shape, set(points)))
+    else:
+        return render_at(shape, set(points))
 
 
 # ======================================================================
@@ -1118,6 +1127,27 @@ def cylinder(
 
 
 # ======================================================================
+def polyhedron(
+        shape,
+        vertices,
+        position=0.5):
+    """
+    Render a simple polyhedron.
+
+    Args:
+        shape (int|Sequence[int]): The shape of the container in px.
+        vertices (Sequence[Sequence[float]): Coordinates of the vertices in px.
+        position (float|Sequence[float]): The position of the center.
+            Values are relative to the lowest edge.
+            They are interpreted as relative to the shape.
+
+    Returns:
+        rendered (np.ndarray[bool]): The rendered geometrical object.
+    """
+    raise NotImplementedError
+
+
+# ======================================================================
 def extrema_to_semisizes_position(minima, maxima, num=None):
     """
     Compute semisizes and positions from extrema.
@@ -1165,27 +1195,6 @@ def extrema_to_semisizes_position(minima, maxima, num=None):
         semisizes.append((max_val - min_val) / 2.0)
         position.append((max_val + min_val) / 2.0)
     return semisizes, position
-
-
-# ======================================================================
-def polyhedron(
-        shape,
-        vertices,
-        position=0.5):
-    """
-    Render a simple polyhedron.
-
-    Args:
-        shape (int|Sequence[int]): The shape of the container in px.
-        vertices (Sequence[Sequence[float]): Coordinates of the vertices in px.
-        position (float|Sequence[float]): The position of the center.
-            Values are relative to the lowest edge.
-            They are interpreted as relative to the shape.
-
-    Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
-    """
-    raise NotImplementedError
 
 
 # ======================================================================
@@ -1449,8 +1458,7 @@ def nd_prism(
         rel_position (bool|callable): Interpret positions as relative values.
             Determine the interpretation of `position` using `extra_dim`.
             Uses `flyingcircus.extra.grid_coord()` internally, see its
-            `is_relative`
-            parameter for more details.
+            `is_relative` parameter for more details.
         rel_sizes (bool|callable): Interpret sizes as relative values.
             Determine the interpretation of `size` using `extra_dim`.
             Uses `flyingcircus.extra.coord()` internally, see its `is_relative`
@@ -1493,22 +1501,46 @@ def nd_superellipsoidal_prism(
         rel_position=True,
         rel_sizes=True):
     """
+    Render a N-dim prism with superellipsoidal base.
 
     Args:
-        shape:
-        axis:
-        semisizes:
-        indexes:
-        position:
-        n_dim:
-        rel_position:
-        rel_sizes:
+        shape (int|Sequence[int]): The shape of the container in px.
+        axis (int): Orientation of the prism in the N-dim space.
+        semisizes (float|Sequence[float]): The superellipsoid axes semisizes.
+            The values interpretation depend on `rel_sizes`.
+        position (float|Sequence[float]): The position of the center.
+            Values are relative to the lowest edge.
+            The values interpretation depend on `rel_position`.
+        indexes (float|Sequence[float]): The exponent of the summed terms.
+            If 2, generates ellipsoids.
+        position (float): The relative position of the center.
+            Values are relative to the lowest edge.
+            The values interpretation depend on `rel_position`.
+            This setting only affects the extra shape dimension.
+        n_dim (int|None): The number of dimensions.
+            If None, the number of dims is guessed from the other parameters,
+            but one of `shape`, `position`, `semisizes`, `indexes` must be a
+            sequence.
+            The superellipsoidal base has `n_dim - 1` dims.
+        rel_position (bool|callable): Interpret positions as relative values.
+            Determine the interpretation of `position` using `extra_dim`.
+            Uses `flyingcircus.extra.grid_coord()` internally, see its
+            `is_relative`
+            parameter for more details.
+        rel_sizes (bool|callable): Interpret sizes as relative values.
+            Determine the interpretation of `size` using `extra_dim`.
+            Uses `flyingcircus.extra.coord()` internally, see its `is_relative`
+            parameter for more details.
 
     Returns:
-
+        rendered (np.ndarray[bool]): The rendered geometrical object.
     """
     if not n_dim:
-        n_dim = fc.base.combine_iter_len((shape, position, semisizes))
+        try:
+            n_dim = len(shape)
+        except TypeError:
+            n_dim = 1 + \
+                fc.base.combine_iter_len((position, semisizes, indexes))
     axis = axis % n_dim
     # separate shape/dims
     base_shape = tuple(dim for i, dim in enumerate(shape) if i != axis)
@@ -1609,7 +1641,9 @@ def nd_gradient(
             If Sequence, each dict (or None) is applied to the corresponding
             generator in `generators`, and its length must match the length of
             `generators`.
-
+        n_dim (int|None): The number of dimensions.
+            If None, the number of dims is guessed from the other parameters,
+            but one of `shape`, `gen_ranges` must be a sequence.
 
     Returns:
         arrs (list[np.ndarray]): The broadcast-safe N-dim gradient arrays.
@@ -1734,10 +1768,8 @@ def nd_gradient(
     if not n_dim:
         n_dim = fc.base.combine_iter_len((shape, gen_ranges))
 
-    generators = fc.base.auto_repeat(
-        generators, n_dim, check=True)
-    generators_kws = fc.base.auto_repeat(
-        generators_kws, n_dim, check=True)
+    generators = fc.base.auto_repeat(generators, n_dim, check=True)
+    generators_kws = fc.base.auto_repeat(generators_kws, n_dim, check=True)
 
     if not shape:
         shape = tuple(gen_range[2] for gen_range in gen_ranges)

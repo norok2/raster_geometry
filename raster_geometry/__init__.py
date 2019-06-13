@@ -69,7 +69,25 @@ PATH = pkg_paths(__file__, INFO['name'], INFO['author'], INFO['version'])
 
 # ======================================================================
 # : populate namespace
-from raster_geometry.raster_geometry import *
+from raster_geometry.raster import (
+    set_values, bresenham_line, bresenham_lines,
+    # bresenham_curve, bresenham_curves,
+    center_of, as_vector, unit_vector, angle_between, signed_angle_2d,
+    is_convex_2d, is_simple_2d, render_at, fill_convex, unfill,
+    polygon, square, rectangle, rhombus, circle, ellipse,
+    cube, cuboid, rhomboid, sphere, ellipsoid, cylinder,
+    # polyhedron,
+    extrema_to_semisizes_position,
+    nd_lines,
+    # nd_curves,
+    nd_cuboid, nd_superellipsoid, nd_superellipsoidal_prism,
+    # nd_cone, nd_superellipsoidal_cone,
+    nd_gradient, nd_dirac_delta,
+    # nd_polytope
+    ellipsoid_specs, superellipsoid_specs, cuboid_specs, prism_specs,
+    gradient_specs,
+    multi_render,
+)
 
 # ======================================================================
 elapsed(__file__[len(os.path.dirname(PATH['base'])) + 1:])
