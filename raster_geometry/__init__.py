@@ -18,7 +18,8 @@ import os  # Miscellaneous operating system interfaces
 # ======================================================================
 # :: External Imports
 # import flyingcircus as fc  # Everything you always wanted to have in Python.*
-from flyingcircus import msg, dbg, elapsed, report, pkg_paths
+from flyingcircus import msg, dbg, fmt, fmtm, elapsed, report, pkg_paths
+from flyingcircus import run_doctests
 from flyingcircus import VERB_LVL, VERB_LVL_NAMES, D_VERB_LVL
 from flyingcircus import HAS_JIT, jit
 
@@ -94,17 +95,4 @@ from raster_geometry.raster import (
 
 # ======================================================================
 if __name__ == '__main__':
-    import doctest  # Test interactive Python examples
-
-    msg(__doc__.strip())
-    msg('Running `doctest.testmod()`... ', fmt='bold')
-    results = doctest.testmod()  # RUN TESTS HERE!
-    results_ok = results.attempted - results.failed
-    results_fmt = '{t.bold}{t.red}' \
-        if results.failed > 0 else '{t.bold}{t.green}'
-    msg('Tests = {results.attempted}; '.format(**locals()),
-        fmt='{t.bold}{t.cyan}', end='')
-    msg('OK = {results_ok}; '.format(**locals()),
-        fmt='{t.bold}{t.green}', end='')
-    msg('Fail = {results.failed}'.format(**locals()), fmt=results_fmt)
-    msg(report())
+    run_doctests(__doc__)

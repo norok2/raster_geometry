@@ -51,7 +51,8 @@ import scipy.ndimage  # SciPy: ND-image Manipulation
 # :: Local Imports
 from raster_geometry import INFO, PATH
 from raster_geometry import elapsed, report
-from raster_geometry import msg, dbg
+from raster_geometry import msg, dbg, fmt, fmtm
+from raster_geometry import run_doctests
 
 
 # todo: support for Iterable relative position/size in nd_cuboid, etc.
@@ -2212,8 +2213,9 @@ def multi_render(
             gen_ranges = geom_spec[1]
             geom_arr = np.sum(nd_gradient(inner_shape, gen_ranges), 0)
         else:
-            text = ('unknown name `{geom_name}` while rendering with '
-                    '`raster_geometry.multi_render`'.format(**locals()))
+            text = fmtm(
+                'unknown name `{geom_name}` while rendering with '
+                '`raster_geometry.multi_render`')
             warnings.warn(text)
         if position is None:
             position = 0.5
@@ -2238,17 +2240,4 @@ elapsed(os.path.basename(__file__))
 
 # ======================================================================
 if __name__ == '__main__':
-    import doctest  # Test interactive Python examples
-
-    msg(__doc__.strip())
-    msg('Running `doctest.testmod()`... ', fmt='bold')
-    results = doctest.testmod()  # RUN TESTS HERE!
-    results_ok = results.attempted - results.failed
-    results_fmt = '{t.bold}{t.red}' \
-        if results.failed > 0 else '{t.bold}{t.green}'
-    msg('Tests = {results.attempted}; '.format(**locals()),
-        fmt='{t.bold}{t.cyan}', end='')
-    msg('OK = {results_ok}; '.format(**locals()),
-        fmt='{t.bold}{t.green}', end='')
-    msg('Fail = {results.failed}'.format(**locals()), fmt=results_fmt)
-    msg(report())
+    run_doctests(__doc__)
