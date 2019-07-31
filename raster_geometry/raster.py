@@ -365,12 +365,13 @@ def is_convex_2d(coords):
     Determine if a simple polygon is convex.
 
     This only works for simple polygons.
+    A polygon is simple if its sides do not intersect.
 
     Args:
         coords (Sequence[Sequence[int|float]]): The vertices of the polygon.
 
     Returns:
-        is_convex (bool): If the specified polygon is convex.
+        result (bool): If the specified polygon is convex.
     """
     coords = list(coords) + list(coords[:2])
     dets = [
@@ -383,22 +384,15 @@ def is_convex_2d(coords):
 # ======================================================================
 def is_simple_2d(coords):
     """
-    Determine if a simple polygon is convex.
-
-    This only works for simple polygons.
+    Determine if a polygon is simple.
 
     Args:
         coords (Sequence[Sequence[int|float]]): The vertices of the polygon.
 
     Returns:
-        is_convex (bool): If the specified polygon is convex.
+        result (bool): If the specified polygon is convex.
     """
-    coords = list(coords) + list(coords[:2])
-    dets = [
-        np.cross(as_vector(point_b, point_a), as_vector(point_c, point_b))
-        for point_a, point_b, point_c in
-        zip(coords[:-2], coords[1:-1], coords[2:])]
-    return all([det > 0 for det in dets]) or all([det < 0 for det in dets])
+    raise NotImplementedError
 
 
 # ======================================================================
@@ -1541,7 +1535,7 @@ def nd_superellipsoidal_prism(
             n_dim = len(shape)
         except TypeError:
             n_dim = 1 + \
-                fc.base.combine_iter_len((position, semisizes, indexes))
+                    fc.base.combine_iter_len((position, semisizes, indexes))
     axis = axis % n_dim
     # separate shape/dims
     base_shape = tuple(dim for i, dim in enumerate(shape) if i != axis)
