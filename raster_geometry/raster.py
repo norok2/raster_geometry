@@ -372,13 +372,51 @@ def is_convex_2d(coords):
 
     Returns:
         result (bool): If the specified polygon is convex.
+
+    Examples:
+        >>> is_convex_2d(((0, 0), (0, 5), (5, 5), (4, 1)))
+        True
+        >>> is_convex_2d(((0, 0), (0, 5), (5, 5), (1, 4)))
+        False
     """
     coords = list(coords) + list(coords[:2])
     dets = [
         np.cross(as_vector(point_b, point_a), as_vector(point_c, point_b))
         for point_a, point_b, point_c in
         zip(coords[:-2], coords[1:-1], coords[2:])]
-    return all([det > 0 for det in dets]) or all([det < 0 for det in dets])
+    return all(det > 0 for det in dets) or all(det < 0 for det in dets)
+
+
+# ======================================================================
+def in_polygon_2d(
+        coord,
+        coords):
+    """
+    Check if a point lays inside a polygon.
+
+    Args:
+        coord (Sequence[int|float]): The point to check.
+        coords (Sequence[Sequence[int|float]]): The vertices of the polygon.
+
+    Returns:
+        result (bool): If the specified point is inside the polygon.
+
+    Examples:
+        >>> in_polygon_2d((0, 0), ((1, 1), (1, 2), (2, 1)))
+        False
+        >>> in_polygon_2d((1, 1), ((0, 0), (0, 3), (3, 0)))
+        True
+    """
+    result = False
+    for i in range(len(coords)):
+        x_i = coords[i]
+        x_j = coords[(i - 1) % len(coords)]
+        intersect = ((x_i[1] > coord[1]) != (x_j[1] > coord[1])) \
+                    and (coord[0] < (x_j[0] - x_i[0])
+                         * (coord[1] - x_i[1]) / (x_j[1] - x_i[1]) + x_i[0])
+        if intersect:
+            result = not result
+    return result
 
 
 # ======================================================================
