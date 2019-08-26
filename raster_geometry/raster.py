@@ -2204,7 +2204,7 @@ def multi_render(
         n_dim (int|None): The number of dimensions.
             If None, the number of dims is guessed from the `shape` parameter,
             which must be a sequence.
-        affine_kws (dict|Sequence|None): Keyword parameters for the affine.
+        affine_kws (Mappable|None): Keyword parameters for the affine.
             These parameters are passed to `scipy.ndimage.affine_transform()`
             upon application of the (eventual) rotation.
             If Sequence, must be possible to cast to dict.
