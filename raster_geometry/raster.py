@@ -100,8 +100,8 @@ def bresenham_line(
         coord_a (Sequence[int]): The coordinates of the starting point.
             The starting point is included.
         coord_b (Sequence[int]): The coordinates of the ending point.
-            The endind point is excluded, unless `endpoint == True`.
-        endpoint (bool): Determine wether to yield the last point.
+            The ending point is excluded, unless `endpoint == True`.
+        endpoint (bool): Determine whether to yield the last point.
             If True, the endpoint (`coord_b`) is yielded at last.
             Otherwise, the endpoint (`coord_b`) is not yielded.
 
@@ -116,12 +116,12 @@ def bresenham_line(
     coord = list(coord_a)
     for i in range(max_diff + 1):
         yield tuple(coord)
-        for i, (x, d, s, u) in enumerate(
+        for j, (x, d, s, u) in enumerate(
                 zip(coord, diffs, steps, updates)):
-            updates[i] -= d
+            updates[j] -= d
             if u < 0:
-                coord[i] += s
-                updates[i] += max_diff
+                coord[j] += s
+                updates[j] += max_diff
     if endpoint:
         yield tuple(coord_b)
 
@@ -198,7 +198,6 @@ def bresenham_curves(
 
     All curves must have the same degree.
 
-
     Args:
         coords (Sequence[Sequence[int]]): The coordinates of the points.
             The size of the items of `coords` must match.
@@ -216,7 +215,7 @@ def bresenham_curves(
     """
     gen_coords = [coords[i:len(coords) - deg + i:deg] for i in range(deg + 1)]
     for _coords in zip(*gen_coords):
-        for coord in bresenham_curve(_coords):
+        for coord in bresenham_curve(_coords, deg):
             yield coord
 
 
@@ -436,23 +435,30 @@ def is_simple_2d(coords):
 # ======================================================================
 def render_at(
         shape,
-        coords):
+        coords,
+        value=True,
+        dtype=None):
     """
     Render at specific integer coordinates in a shape.
 
     Args:
         shape (int|Sequence[int]): The shape of the container in px.
         coords (Sequence[tuple(int)]): The coordinates to render.
+        value (bool|int|float): The rendering value.
+        dtype (None|np.dtype): The data type to use.
+            If None, this is determined using `type(value)`.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray): The rendered geometrical object.
     """
-    rendered = np.zeros(shape, dtype=bool)
+    if dtype is None:
+        dtype = type(value)
+    rendered = np.zeros(shape, dtype=dtype)
     # : slower
-    # mask = tuple(zip(*coords))
-    # rendered[mask] = True
+    # slicing = tuple(zip(*coords))
+    # rendered[slicing] = value
     for point in coords:
-        rendered[point] = True
+        rendered[point] = value
     return rendered
 
 
@@ -466,8 +472,8 @@ def fill_convex(
 
     Args:
         arr (np.ndarray): The array containing the outer shape of the object.
-        border: The value to use to identify the border.
-        fill: The value to use for the filling.
+        border (bool|int|float): The value to use to identify the border.
+        fill (bool|int|float): The value to use for the filling.
 
     Returns:
         arr (np.ndarray): The filled geometrical object.
@@ -514,7 +520,7 @@ def unfill(
         structure=None,
         border=1):
     """
-    Fill a convex N-dimensional geometrical object from its outer shape.
+    Remove filling from a convex N-dimensional geometrical object.
 
     Args:
         arr (np.ndarray): The array containing the outer shape of the object.
@@ -651,7 +657,8 @@ def polygon(
 def square(
         shape,
         side,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render a square.
 
@@ -661,9 +668,17 @@ def square(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(square(4, 2))
@@ -677,17 +692,42 @@ def square(
          [False  True  True  True False]
          [False  True  True  True False]
          [False False False False False]]
+        >>> print(square(7, 3, 0.5, 1.0))
+        [[0.   0.   0.   0.   0.   0.   0.  ]
+         [0.   0.25 0.5  0.5  0.5  0.25 0.  ]
+         [0.   0.5  1.   1.   1.   0.5  0.  ]
+         [0.   0.5  1.   1.   1.   0.5  0.  ]
+         [0.   0.5  1.   1.   1.   0.5  0.  ]
+         [0.   0.25 0.5  0.5  0.5  0.25 0.  ]
+         [0.   0.   0.   0.   0.   0.   0.  ]]
+        >>> print(square(7, 4, 0.5, 1.0))
+        [[0. 0. 0. 0. 0. 0. 0.]
+         [0. 1. 1. 1. 1. 1. 0.]
+         [0. 1. 1. 1. 1. 1. 0.]
+         [0. 1. 1. 1. 1. 1. 0.]
+         [0. 1. 1. 1. 1. 1. 0.]
+         [0. 1. 1. 1. 1. 1. 0.]
+         [0. 0. 0. 0. 0. 0. 0.]]
+        >>> print(np.round(square(7, 3.5, 0.5, 1.0), 2))
+        [[0.   0.   0.   0.   0.   0.   0.  ]
+         [0.   0.56 0.75 0.75 0.75 0.56 0.  ]
+         [0.   0.75 1.   1.   1.   0.75 0.  ]
+         [0.   0.75 1.   1.   1.   0.75 0.  ]
+         [0.   0.75 1.   1.   1.   0.75 0.  ]
+         [0.   0.56 0.75 0.75 0.75 0.56 0.  ]
+         [0.   0.   0.   0.   0.   0.   0.  ]]
     """
     return nd_cuboid(
         shape, side / 2.0, position, 2,
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
 def rectangle(
         shape,
         semisides,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render a rectangle.
 
@@ -697,9 +737,17 @@ def rectangle(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(rectangle(6, (2, 1)))
@@ -728,14 +776,15 @@ def rectangle(
     """
     return nd_cuboid(
         shape, semisides, position, 2,
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
 def rhombus(
         shape,
         semidiagonals,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render a rhombus.
 
@@ -745,9 +794,17 @@ def rhombus(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(rhombus(5, 2))
@@ -765,14 +822,15 @@ def rhombus(
     """
     return nd_superellipsoid(
         shape, semidiagonals, 1.0, position, 2,
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
 def circle(
         shape,
         radius,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render a circle.
 
@@ -782,9 +840,17 @@ def circle(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(circle(5, 1))
@@ -808,14 +874,15 @@ def circle(
     """
     return nd_superellipsoid(
         shape, radius, 2.0, position, 2,
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
 def ellipse(
         shape,
         semiaxes,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render an ellipse.
 
@@ -825,9 +892,17 @@ def ellipse(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(ellipse(6, (2, 3)))
@@ -847,14 +922,15 @@ def ellipse(
     """
     return nd_superellipsoid(
         shape, semiaxes, 2.0, position, 2,
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
 def cube(
         shape,
         side,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render a cube.
 
@@ -864,9 +940,17 @@ def cube(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(cube(4, 2))
@@ -892,14 +976,15 @@ def cube(
     """
     return nd_cuboid(
         shape, side / 2.0, position, 3,
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
 def cuboid(
         shape,
         semisides,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render a cuboid.
 
@@ -909,9 +994,17 @@ def cuboid(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(cuboid((3, 4, 6), (0.5, 2, 1)))
@@ -932,14 +1025,15 @@ def cuboid(
     """
     return nd_cuboid(
         shape, semisides, position, 3,
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
 def rhomboid(
         shape,
         semidiagonals,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render a rhomboid.
 
@@ -949,9 +1043,17 @@ def rhomboid(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(rhomboid((3, 5, 7), (1, 1, 2)))
@@ -975,14 +1077,15 @@ def rhomboid(
     """
     return nd_superellipsoid(
         shape, semidiagonals, 1.0, position, 3,
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
 def sphere(
         shape,
         radius,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render a sphere.
 
@@ -992,9 +1095,17 @@ def sphere(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(sphere(3, 1))
@@ -1042,14 +1153,15 @@ def sphere(
     """
     return nd_superellipsoid(
         shape, radius, 2.0, position, 3,
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
 def ellipsoid(
         shape,
         semiaxes,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render an ellipsoid.
 
@@ -1059,9 +1171,17 @@ def ellipsoid(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(ellipsoid(5, (1., 2., 1.5)))
@@ -1097,7 +1217,7 @@ def ellipsoid(
     """
     return nd_superellipsoid(
         shape, semiaxes, 2.0, position, 3,
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
@@ -1106,7 +1226,8 @@ def cylinder(
         height,
         radius,
         axis=-1,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render a cylinder.
 
@@ -1118,9 +1239,17 @@ def cylinder(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
 
     Examples:
         >>> print(cylinder(4, 2, 2, 0))
@@ -1152,18 +1281,19 @@ def cylinder(
         dim for i, dim in enumerate(shape) if axis % n_dim != i)
     base_position = tuple(
         dim for i, dim in enumerate(position) if axis % n_dim != i)
-    base = circle(base_shape, radius, base_position)
+    base = circle(base_shape, radius, base_position, smoothing=smoothing)
     # use N-dim function
     return nd_prism(
         base, shape[axis], axis, height, position[axis],
-        rel_position=True, rel_sizes=False)
+        rel_position=True, rel_sizes=False, smoothing=smoothing)
 
 
 # ======================================================================
 def polyhedron(
         shape,
         vertices,
-        position=0.5):
+        position=0.5,
+        smoothing=False):
     """
     Render a simple polyhedron.
 
@@ -1173,9 +1303,17 @@ def polyhedron(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             They are interpreted as relative to the shape.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
     """
     raise NotImplementedError
 
@@ -1337,7 +1475,8 @@ def nd_cuboid(
         position=0.5,
         n_dim=None,
         rel_position=True,
-        rel_sizes=True):
+        rel_sizes=True,
+        smoothing=False):
     """
     Render an N-dim cuboid (hypercuboid).
 
@@ -1369,9 +1508,17 @@ def nd_cuboid(
             Determine the interpretation of `semisizes` using `shape`.
             Uses `flyingcircus.extra.coord()` internally, see its `is_relative`
             parameter for more details.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
     """
     if not n_dim:
         n_dim = fc.base.combine_iter_len((shape, position, semisizes))
@@ -1385,9 +1532,21 @@ def nd_cuboid(
     xx = fc.extra.grid_coord(
         shape, position, is_relative=rel_position, use_int=False)
     # create the rendered object
-    rendered = np.ones(shape, dtype=bool)
-    for x_i, semisize in zip(xx, semisizes):
-        rendered *= (np.abs(x_i) <= semisize)
+    if smoothing:
+        rendered = np.ones(shape, dtype=float)
+        for x_i, semisize in zip(xx, semisizes):
+            rendered *= \
+                (1.0 - np.clip(np.abs(x_i) - semisize, 0.0, 1.0)) \
+                ** (1.0 / smoothing)
+    else:
+        if type(smoothing) in (int, float):
+            rendered = np.ones(shape, dtype=float)
+            for x_i, semisize in zip(xx, semisizes):
+                rendered *= (np.abs(x_i) <= semisize).astype(float)
+        else:
+            rendered = np.ones(shape, dtype=bool)
+            for x_i, semisize in zip(xx, semisizes):
+                rendered &= (np.abs(x_i) <= semisize)
     return rendered
 
 
@@ -1399,7 +1558,8 @@ def nd_superellipsoid(
         position=0.5,
         n_dim=None,
         rel_position=True,
-        rel_sizes=True):
+        rel_sizes=True,
+        smoothing=False):
     """
     Render an N-dim superellipsoid.
 
@@ -1435,9 +1595,17 @@ def nd_superellipsoid(
             Determine the interpretation of `semisizes`.
             Uses `flyingcircus.extra.coord()` internally, see its `is_relative`
             parameter for more details.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
     """
     if not n_dim:
         n_dim = fc.base.combine_iter_len((shape, position, semisizes, indexes))
@@ -1457,12 +1625,17 @@ def nd_superellipsoid(
         shape, position, is_relative=rel_position, use_int=False)
     # print('X: {}'.format(xx))  # DEBUG
 
-    # create the rendered
+    # create the rendered result
     rendered = np.zeros(shape, dtype=float)
     for x_i, semisize, index in zip(xx, semisizes, indexes):
         rendered += (np.abs(x_i / semisize) ** index)
-    rendered = rendered <= 1.0
-
+    if smoothing:
+        k = fc.base.prod(semisizes) ** (1 / index / n_dim / smoothing)
+        rendered = np.clip(1.0 - rendered, 0.0, 1.0 / k) * k
+    else:
+        rendered = rendered <= 1.0
+        if type(smoothing) in (int, float):
+            rendered = rendered.astype(float)
     return rendered
 
 
@@ -1474,12 +1647,14 @@ def nd_prism(
         size=0.5,
         position=0.5,
         rel_position=True,
-        rel_sizes=True):
+        rel_sizes=True,
+        smoothing=False):
     """
     Render a N-dim prism.
 
     Args:
-        base (np.ndarray): Base (N-1)-dim rendered object to stack as prism.
+        base (np.ndarray[bool|float]): Base (N-1)-dim rendered object.
+            This is stacked to form the prism.
         extra_dim (int): Size of the new dimension to be added.
         axis (int): Orientation of the prism in the N-dim space.
         size (float): The size of the prism height.
@@ -1496,9 +1671,17 @@ def nd_prism(
             Determine the interpretation of `size` using `extra_dim`.
             Uses `flyingcircus.extra.coord()` internally, see its `is_relative`
             parameter for more details.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the type of `base`.
     """
     n_dim = base.ndim + 1
     if axis > n_dim:
@@ -1511,10 +1694,9 @@ def nd_prism(
         (extra_dim,), (position,), is_relative=rel_position, use_int=False)[0]
     extra_rendered = np.abs(xx) <= (size / 2.0)
     # calculate rendered object shape
-    shape = (
-            base.shape[:axis] + (extra_dim,) + base.shape[axis:])
+    shape = (base.shape[:axis] + (extra_dim,) + base.shape[axis:])
     # create indefinite prism
-    rendered = np.zeros(shape, dtype=bool)
+    rendered = np.zeros(shape, dtype=base.dtype)
     for i in range(extra_dim):
         if extra_rendered[i]:
             index = [slice(None)] * n_dim
@@ -1532,7 +1714,8 @@ def nd_superellipsoidal_prism(
         position=0.5,
         n_dim=None,
         rel_position=True,
-        rel_sizes=True):
+        rel_sizes=True,
+        smoothing=False):
     """
     Render a N-dim prism with superellipsoidal base.
 
@@ -1564,9 +1747,17 @@ def nd_superellipsoidal_prism(
             Determine the interpretation of `size` using `extra_dim`.
             Uses `flyingcircus.extra.coord()` internally, see its `is_relative`
             parameter for more details.
+        smoothing (bool|int|float|None): The smoothing of the border.
+            If None or False, no smoothing is performed and the data type of
+            the result is bool.
+            If int or float, smooths the border transition and the data type of
+            the result is float.
+            When the value is equal to 1 or True, the smoothing emulate
+            the spatial anti-aliasing.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|float]): The rendered geometrical object.
+            The data type depends on the value and type of smoothing.
     """
     if not n_dim:
         try:
@@ -1589,11 +1780,11 @@ def nd_superellipsoidal_prism(
     # generate prism base
     base = nd_superellipsoid(
         base_shape, base_semisizes, indexes, base_position, n_dim - 1,
-        rel_position, rel_sizes)
+        rel_position, rel_sizes, smoothing)
     # generate final prism
     rendered = nd_prism(
         base, extra_dim, axis, extra_semisize * 2, extra_position,
-        rel_position, rel_sizes)
+        rel_position, rel_sizes, smoothing)
     return rendered
 
 
@@ -1605,7 +1796,8 @@ def nd_cone(
         size=0.5,
         position=0.5,
         rel_position=True,
-        rel_sizes=True):
+        rel_sizes=True,
+        smoothing=False):
     raise NotImplementedError
 
 
@@ -1619,7 +1811,8 @@ def nd_superellipsoidal_cone(
         position=0.5,
         n_dim=None,
         rel_position=True,
-        rel_sizes=True):
+        rel_sizes=True,
+        smoothing=False):
     raise NotImplementedError
 
 
@@ -1854,7 +2047,7 @@ def nd_dirac_delta(
         position (float|Sequence[float]): The position of the center.
             Values are relative to the lowest edge.
             The values interpretation depend on `rel_position`.
-        value (int|float): The value of the peak.
+        value (bool|int|float): The value of the peak.
         n_dim (int|None): The number of dimensions.
             If None, the number of dims is guessed from the other parameters,
             but one of `shape`, `position` must be a sequence.
@@ -1864,9 +2057,14 @@ def nd_dirac_delta(
             parameter for more details.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object.
+        rendered (np.ndarray[bool|int|float]): The rendered geometrical object.
+            The data type depends on the type of `value`.
 
     Examples:
+        >>> print(nd_dirac_delta((3, 3), 0.5, True))
+        [[False False False]
+         [False  True False]
+         [False False False]]
         >>> print(nd_dirac_delta((5, 5), 0.5, 1))
         [[0 0 0 0 0]
          [0 0 0 0 0]
@@ -2172,6 +2370,7 @@ def multi_render(
         geom_shapes,
         n_dim=None,
         affine_kws=(('order', 0),),
+        smoothing=False,
         dtype=np.float):
     """
     Render multiple geometrical objects into a single array.
@@ -2211,9 +2410,12 @@ def multi_render(
             If None, no parameter is set.
         dtype (np.dtype): The Numpy data type of the rendered array.
             Note that this will be used also for the internal interpolations!
+        smoothing (bool|int|float|None): The smoothing of the border.
+            This is passed to `nd_superellipsoid()`, `nd_cuboid()` and
+            `nd_superellipsoidal_prism()`.
 
     Returns:
-        rendered (np.ndarray[bool]): The rendered geometrical object(s).
+        rendered (np.ndarray): The rendered geometrical object.
     """
     # check that ellipsoids parameters have the right size
     if n_dim is None:
@@ -2230,17 +2432,21 @@ def multi_render(
         geom_arr = None
         if geom_name in ('e', 'ellipsoid'):
             semisizes = geom_spec[1]
-            geom_arr = nd_superellipsoid(inner_shape, semisizes)
+            geom_arr = nd_superellipsoid(
+                inner_shape, semisizes, smoothing=smoothing)
         elif geom_name in ('s', 'superellipsoid'):
             semisizes, indexes = geom_spec[1:]
-            geom_arr = nd_superellipsoid(inner_shape, semisizes, indexes)
+            geom_arr = nd_superellipsoid(
+                inner_shape, semisizes, indexes, smoothing=smoothing)
         elif geom_name in ('c', 'cuboid'):
             semisizes = geom_spec[1]
-            geom_arr = nd_cuboid(inner_shape, semisizes)
+            geom_arr = nd_cuboid(
+                inner_shape, semisizes, smoothing=smoothing)
         elif geom_name in ('p', 'prism'):
             axis, semisizes, indexes = geom_spec[1:]
             geom_arr = nd_superellipsoidal_prism(
-                inner_shape, axis % n_dim, semisizes, indexes)
+                inner_shape, axis % n_dim, semisizes, indexes,
+                smoothing=smoothing)
         elif geom_name in ('g', 'gradient'):
             gen_ranges = geom_spec[1]
             geom_arr = np.sum(nd_gradient(inner_shape, gen_ranges), 0)
