@@ -108,6 +108,26 @@ def bresenham_line(
 
     Yields:
         coord (tuple[int]): The coordinates of a point on the N-dim line.
+
+    Examples:
+        >>> print(list(bresenham_line((0, 0), (6, 0))))
+        [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0)]
+        >>> print(list(bresenham_line((0, 0), (6, 0), True)))
+        [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0)]
+        >>> print(list(bresenham_line((0, 0), (4, 4))))
+        [(0, 0), (1, 1), (2, 2), (3, 3)]
+        >>> print(list(bresenham_line((0, 0), (4, 4), True)))
+        [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4)]
+        >>> print(list(bresenham_line((0, 0), (3, 6))))
+        [(0, 0), (0, 1), (1, 2), (1, 3), (2, 4), (2, 5)]
+        >>> print(list(bresenham_line((0, 0), (-3, 6))))
+        [(0, 0), (0, 1), (-1, 2), (-1, 3), (-2, 4), (-2, 5)]
+        >>> print(list(bresenham_line((0, 0), (3, -6))))
+        [(0, 0), (0, -1), (1, -2), (1, -3), (2, -4), (2, -5)]
+        >>> print(list(bresenham_line((0, 0), (-3, -6))))
+        [(0, 0), (0, -1), (-1, -2), (-1, -3), (-2, -4), (-2, -5)]
+        >>> print(list(bresenham_line((1, 2), (3, 4))))
+        [(1, 2), (2, 3)]
     """
     n_dim = len(coord_a)
     diffs = [abs(b - a) for a, b in zip(coord_a, coord_b)]
@@ -115,14 +135,14 @@ def bresenham_line(
     max_diff = max(diffs)
     updates = [max_diff / 2] * n_dim
     coord = list(coord_a)
-    for i in range(max_diff + 1):
-        yield tuple(coord)
+    for i in range(max_diff):
         for j, (x, d, s, u) in enumerate(
                 zip(coord, diffs, steps, updates)):
             updates[j] -= d
             if u < 0:
                 coord[j] += s
                 updates[j] += max_diff
+        yield tuple(coord)
     if endpoint:
         yield tuple(coord_b)
 
@@ -130,7 +150,8 @@ def bresenham_line(
 # ======================================================================
 def bresenham_lines(
         coords,
-        closed=False):
+        closed=False,
+        endpoint=True):
     """
     Yield the integer points lying on N-dim lines.
 
@@ -143,12 +164,13 @@ def bresenham_lines(
         closed (bool): Render a line between the first and last points.
             This is used to generate closed lines.
             If only two points are given, this parameter has no effect.
+        endpoint (bool): Determine whether to yield the last point.
 
     Yields:
         coord (tuple[int]): The coordinates of a point on the N-dim lines.
 
     See Also:
-        bresenham_line()
+        - bresenham_line()
     """
     for coord_a, coord_b in fc.slide(coords, 2):
         for coord in bresenham_line(coord_a, coord_b):
@@ -156,12 +178,15 @@ def bresenham_lines(
     if closed and len(coords) > 2:
         for coord in bresenham_line(coords[-1], coords[0]):
             yield coord
+    elif endpoint:
+        yield coords[-1]
 
 
 # ======================================================================
 def bresenham_curve(
         coords,
-        deg=2):
+        deg=2,
+        endpoint=False):
     """
     Yield the integer points lying on an N-dim Bézier curve of given degree.
 
@@ -179,6 +204,9 @@ def bresenham_curve(
         deg (int): The degree of the polynomial generating the curve.
             This must be larger than 0.
             If 1, this is equivalent to `bresenham_line()` but slower.
+        endpoint (bool): Determine whether to yield the last point.
+            If True, the endpoint (`coord_b`) is yielded at last.
+            Otherwise, the endpoint (`coord_b`) is not yielded.
 
     Yields:
         coord (tuple[int]): The coordinates of a point on the N-dim curve.
@@ -190,7 +218,8 @@ def bresenham_curve(
 # ======================================================================
 def bresenham_curves(
         coords,
-        deg=2):
+        deg=2,
+        endpoint=True):
     """
     Yield the integer points lying on N-dim Bézier curves of given degree.
 
@@ -207,6 +236,7 @@ def bresenham_curves(
         deg (int): The degree of the polynomial generating the curve.
             This must be larger than 0.
             If 1, this is equivalent to `bresenham_lines()` but slower.
+        endpoint (bool): Determine whether to yield the last point.
 
     Yields:
         coord (tuple[int]): The coordinates of a point on the N-dim curves.
@@ -214,10 +244,48 @@ def bresenham_curves(
     See Also:
         bresenham_curve(), bresenham_line(), bresenham_lines()
     """
-    gen_coords = [coords[i:len(coords) - deg + i:deg] for i in range(deg + 1)]
-    for _coords in zip(*gen_coords):
+    for _coords in fc.slide(coords, deg + 1):
         for coord in bresenham_curve(_coords, deg):
             yield coord
+    if endpoint:
+        yield coords[-1]
+
+
+# ======================================================================
+def bresenham_polygon(coords, seed=None):
+    """
+    Yield the integer points inside a N-dim convex polygon delimited by lines.
+
+    If the polygon is convex, the set of points yielded by the generator
+    is independent of the seed.
+    Otherwise, the seed is the only vertex that may dent the polygon.
+    Note that if seed is not None, some points may be missed.
+
+    This uses an adaptation of the Bresenham algorithm.
+    Note that this only works with integer coordinates.
+
+    Args:
+        coords (Sequence[Sequence[int]]): The coordinates of the points.
+            The size of the items of `coords` must match.
+        seed (int|None): The index of the coordinate to use for seeding.
+            If int, it is normalized to a valid index using modulo len(coords).
+            If None all possible seeds are used.
+
+    Yields:
+        coord (tuple[int]): The coordinates of a point on the N-dim polygon.
+    """
+    if seed is not None:
+        seed %= len(coords)
+        seeds = (seed,)
+    else:
+        seeds = range(len(coords))
+    for seed in seeds:
+        seed_coord = coords[seed]
+        opposing_coords = bresenham_lines(
+            coords[:seed] + coords[seed + 1:], closed=False)
+        for opposing_coord in set(opposing_coords):
+            for coord in bresenham_line(seed_coord, opposing_coord, True):
+                yield coord
 
 
 # ======================================================================
@@ -471,6 +539,9 @@ def fill_convex(
     """
     Fill a convex N-dimensional geometrical object from its outer shape.
 
+    Note that this requires the full outer edge to be defined.
+    Therefore, it cannot be used to fill a polygon for dims larger than 2.
+
     Args:
         arr (np.ndarray): The array containing the outer shape of the object.
         border (bool|int|float): The value to use to identify the border.
@@ -647,11 +718,11 @@ def polygon(
         angles = [signed_angle_2d(coord, center) for coord in coords]
         coords = list(list(zip(*sorted(zip(angles, coords))))[1])
     # : render polygon
-    points = bresenham_lines(coords, True)
     if filling:
-        return fill_convex(render_at(shape, set(points)))
+        points = bresenham_polygon(coords)
     else:
-        return render_at(shape, set(points))
+        points = bresenham_lines(coords, True)
+    return render_at(shape, set(points))
 
 
 # ======================================================================
@@ -1766,7 +1837,7 @@ def nd_superellipsoidal_prism(
         except TypeError:
             n_dim = 1 + \
                     fc.combine_iter_len((position, semisizes, indexes))
-    assert(-n_dim <= axis < n_dim)
+    assert (-n_dim <= axis < n_dim)
     axis %= n_dim
     # separate shape/dims
     base_shape = tuple(dim for i, dim in enumerate(shape) if i != axis)

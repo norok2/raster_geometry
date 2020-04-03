@@ -74,7 +74,7 @@ elapsed(os.path.basename(__file__))
 # ======================================================================
 # : populate namespace
 from raster_geometry.raster import (
-    set_values, bresenham_line, bresenham_lines,
+    set_values, bresenham_line, bresenham_lines, bresenham_polygon,
     # bresenham_curve, bresenham_curves,
     center_of, as_vector, unit_vector, angle_between, signed_angle_2d,
     is_convex_2d, is_simple_2d, render_at, fill_convex, unfill,
