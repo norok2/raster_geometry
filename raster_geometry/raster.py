@@ -44,6 +44,7 @@ import warnings  # Warning control
 import numpy as np  # NumPy (multidimensional numerical arrays library)
 import scipy as sp  # SciPy (signal and image processing library)
 import flyingcircus as fc  # Everything you always wanted to have in Python*
+import flyingcircus_numeric as fcn  # FlyingCircus with NumPy/SciPy
 
 # :: External Imports Submodules
 import scipy.ndimage  # SciPy: ND-image Manipulation
@@ -149,7 +150,7 @@ def bresenham_lines(
     See Also:
         bresenham_line()
     """
-    for coord_a, coord_b in fc.base.slide(coords, 2):
+    for coord_a, coord_b in fc.slide(coords, 2):
         for coord in bresenham_line(coord_a, coord_b):
             yield coord
     if closed and len(coords) > 2:
@@ -633,12 +634,12 @@ def polygon(
          [False False False False False False False False False]]
     """
     n_dim = 2
-    shape = fc.base.auto_repeat(shape, n_dim, check=True)
+    shape = fc.auto_repeat(shape, n_dim, check=True)
     positions = [
-        fc.base.auto_repeat(position, n_dim, check=True)
+        fc.auto_repeat(position, n_dim, check=True)
         for position in positions]
     coords = [
-        fc.extra.coord(shape, position, rel_position, True)
+        fcn.coord(shape, position, rel_position, True)
         for position in positions]
     # : sort vertices
     if sorting:
@@ -1274,8 +1275,8 @@ def cylinder(
           [False False False False]]]
     """
     n_dim = 3
-    shape = fc.base.auto_repeat(shape, n_dim)
-    position = fc.base.auto_repeat(position, n_dim)
+    shape = fc.auto_repeat(shape, n_dim)
+    position = fc.auto_repeat(position, n_dim)
     # generate base
     base_shape = tuple(
         dim for i, dim in enumerate(shape) if axis % n_dim != i)
@@ -1357,10 +1358,10 @@ def extrema_to_semisizes_position(minima, maxima, num=None):
         ([0.4, 0.15], [0.5, 0.35])
     """
     if not num:
-        num = fc.base.combine_iter_len((minima, maxima, num))
+        num = fc.combine_iter_len((minima, maxima, num))
     # check compatibility of given parameters
-    minima = fc.base.auto_repeat(minima, num, check=True)
-    maxima = fc.base.auto_repeat(maxima, num, check=True)
+    minima = fc.auto_repeat(minima, num, check=True)
+    maxima = fc.auto_repeat(maxima, num, check=True)
     semisizes, position = [], []
     for min_val, max_val in zip(minima, maxima):
         semisizes.append((max_val - min_val) / 2.0)
@@ -1408,13 +1409,13 @@ def nd_lines(
         bresenham_line(), bresenham_lines()
     """
     if not n_dim:
-        n_dim = fc.base.combine_iter_len((shape,) + tuple(positions))
-    shape = fc.base.auto_repeat(shape, n_dim, check=True)
+        n_dim = fc.combine_iter_len((shape,) + tuple(positions))
+    shape = fc.auto_repeat(shape, n_dim, check=True)
     positions = [
-        fc.base.auto_repeat(position, n_dim, check=True)
+        fc.auto_repeat(position, n_dim, check=True)
         for position in positions]
     coords = [
-        fc.extra.coord(shape, position, rel_position, True)
+        fcn.coord(shape, position, rel_position, True)
         for position in positions]
     rendered = render_at(shape, bresenham_lines(coords, closed))
     return rendered
@@ -1456,13 +1457,13 @@ def nd_curves(
     """
     # todo: handle curve-degree properly
     if not n_dim:
-        n_dim = fc.base.combine_iter_len((shape,) + tuple(positions))
-    shape = fc.base.auto_repeat(shape, n_dim, check=True)
+        n_dim = fc.combine_iter_len((shape,) + tuple(positions))
+    shape = fc.auto_repeat(shape, n_dim, check=True)
     positions = [
-        fc.base.auto_repeat(position, n_dim, check=True)
+        fc.auto_repeat(position, n_dim, check=True)
         for position in positions]
     coords = [
-        fc.extra.coord(shape, position, rel_position, True)
+        fcn.coord(shape, position, rel_position, True)
         for position in positions]
     rendered = render_at(shape, bresenham_curves(coords, deg))
     return rendered
@@ -1521,15 +1522,15 @@ def nd_cuboid(
             The data type depends on the value and type of smoothing.
     """
     if not n_dim:
-        n_dim = fc.base.combine_iter_len((shape, position, semisizes))
+        n_dim = fc.combine_iter_len((shape, position, semisizes))
     # check compatibility of given parameters
-    shape = fc.base.auto_repeat(shape, n_dim, check=True)
-    position = fc.base.auto_repeat(position, n_dim, check=True)
-    semisizes = fc.base.auto_repeat(semisizes, n_dim, check=True)
+    shape = fc.auto_repeat(shape, n_dim, check=True)
+    position = fc.auto_repeat(position, n_dim, check=True)
+    semisizes = fc.auto_repeat(semisizes, n_dim, check=True)
     # fix relative units
-    semisizes = fc.extra.coord(
+    semisizes = fcn.coord(
         shape, semisizes, is_relative=rel_sizes, use_int=False)
-    xx = fc.extra.grid_coord(
+    xx = fcn.grid_coord(
         shape, position, is_relative=rel_position, use_int=False)
     # create the rendered object
     if smoothing:
@@ -1608,20 +1609,20 @@ def nd_superellipsoid(
             The data type depends on the value and type of smoothing.
     """
     if not n_dim:
-        n_dim = fc.base.combine_iter_len((shape, position, semisizes, indexes))
+        n_dim = fc.combine_iter_len((shape, position, semisizes, indexes))
 
     # check compatibility of given parameters
-    shape = fc.base.auto_repeat(shape, n_dim, check=True)
-    position = fc.base.auto_repeat(position, n_dim, check=True)
-    semisizes = fc.base.auto_repeat(semisizes, n_dim, check=True)
-    indexes = fc.base.auto_repeat(indexes, n_dim, check=True)
+    shape = fc.auto_repeat(shape, n_dim, check=True)
+    position = fc.auto_repeat(position, n_dim, check=True)
+    semisizes = fc.auto_repeat(semisizes, n_dim, check=True)
+    indexes = fc.auto_repeat(indexes, n_dim, check=True)
 
     # get correct position
-    semisizes = fc.extra.coord(
+    semisizes = fcn.coord(
         shape, semisizes, is_relative=rel_sizes, use_int=False)
     # print('Semisizes: {}'.format(semisizes))  # DEBUG
     # print('Shape: {}'.format(shape))  # DEBUG
-    xx = fc.extra.grid_coord(
+    xx = fcn.grid_coord(
         shape, position, is_relative=rel_position, use_int=False)
     # print('X: {}'.format(xx))  # DEBUG
 
@@ -1630,7 +1631,7 @@ def nd_superellipsoid(
     for x_i, semisize, index in zip(xx, semisizes, indexes):
         rendered += (np.abs(x_i / semisize) ** index)
     if smoothing:
-        k = fc.base.prod(semisizes) ** (1 / index / n_dim / smoothing)
+        k = fc.prod(semisizes) ** (1 / index / n_dim / smoothing)
         rendered = np.clip(1.0 - rendered, 0.0, 1.0 / k) * k
     else:
         rendered = rendered <= 1.0
@@ -1688,9 +1689,9 @@ def nd_prism(
         raise ValueError(
             'axis of orientation must not exceed the number of dimensions')
     # get correct position
-    size = fc.extra.coord(
+    size = fcn.coord(
         (extra_dim,), size, is_relative=rel_sizes, use_int=False)[0]
-    xx = fc.extra.grid_coord(
+    xx = fcn.grid_coord(
         (extra_dim,), (position,), is_relative=rel_position, use_int=False)[0]
     extra_rendered = np.abs(xx) <= (size / 2.0)
     # calculate rendered object shape
@@ -1764,17 +1765,18 @@ def nd_superellipsoidal_prism(
             n_dim = len(shape)
         except TypeError:
             n_dim = 1 + \
-                    fc.base.combine_iter_len((position, semisizes, indexes))
-    axis = axis % n_dim
+                    fc.combine_iter_len((position, semisizes, indexes))
+    assert(-n_dim <= axis < n_dim)
+    axis %= n_dim
     # separate shape/dims
     base_shape = tuple(dim for i, dim in enumerate(shape) if i != axis)
     extra_dim = shape[axis]
     # separate position
-    position = fc.base.auto_repeat(position, n_dim, False, True)
+    position = fc.auto_repeat(position, n_dim, False, True)
     base_position = tuple(x for i, x in enumerate(position) if i != axis)
     extra_position = position[axis]
     # separate semisizes
-    semisizes = fc.base.auto_repeat(semisizes, n_dim, False, True)
+    semisizes = fc.auto_repeat(semisizes, n_dim, False, True)
     base_semisizes = tuple(x for i, x in enumerate(semisizes) if i != axis)
     extra_semisize = semisizes[axis]
     # generate prism base
@@ -1992,10 +1994,10 @@ def nd_gradient(
         ValueError: Incompatible input value length.
     """
     if not n_dim:
-        n_dim = fc.base.combine_iter_len((shape, gen_ranges))
+        n_dim = fc.combine_iter_len((shape, gen_ranges))
 
-    generators = fc.base.auto_repeat(generators, n_dim, check=True)
-    generators_kws = fc.base.auto_repeat(generators_kws, n_dim, check=True)
+    generators = fc.auto_repeat(generators, n_dim, check=True)
+    generators_kws = fc.auto_repeat(generators_kws, n_dim, check=True)
 
     if not shape:
         shape = tuple(gen_range[2] for gen_range in gen_ranges)
@@ -2004,8 +2006,8 @@ def nd_gradient(
         gen_ranges = tuple((0, dim - 1, dim) for dim in shape)
         dtype = int
     else:
-        nesting_level = fc.base.nesting_level(gen_ranges)
-        gen_ranges = fc.base.auto_repeat(
+        nesting_level = fc.nesting_level(gen_ranges)
+        gen_ranges = fc.auto_repeat(
             gen_ranges, n_dim, nesting_level == 1, True)
 
     arrs = []
@@ -2053,7 +2055,7 @@ def nd_dirac_delta(
             but one of `shape`, `position` must be a sequence.
         rel_position (bool|callable): Interpret positions as relative values.
             Determine the interpretation of `position` using `shape`.
-            Uses `fc.extra.grid_coord()` internally, see its `is_relative`
+            Uses `fcn.grid_coord()` internally, see its `is_relative`
             parameter for more details.
 
     Returns:
@@ -2080,13 +2082,13 @@ def nd_dirac_delta(
         [ 0.  0.  0.  0.  0. inf  0.  0.  0.  0.  0.]
     """
     if not n_dim:
-        n_dim = fc.base.combine_iter_len((shape, position))
+        n_dim = fc.combine_iter_len((shape, position))
 
     # check compatibility of given parameters
-    shape = fc.base.auto_repeat(shape, n_dim, check=True)
-    position = fc.base.auto_repeat(position, n_dim, check=True)
+    shape = fc.auto_repeat(shape, n_dim, check=True)
+    position = fc.auto_repeat(position, n_dim, check=True)
 
-    origin = fc.extra.coord(
+    origin = fcn.coord(
         shape, position, is_relative=rel_position, use_int=True)
 
     rendered = np.zeros(shape, dtype=type(value))
@@ -2117,11 +2119,11 @@ def nd_polytope(
             but one of `shape`, `position` must be a sequence.
         rel_position (bool|callable): Interpret positions as relative values.
             Determine the interpretation of `position` using `shape`.
-            Uses `fc.extra.grid_coord()` internally, see its `is_relative`
+            Uses `fcn.grid_coord()` internally, see its `is_relative`
             parameter for more details.
         rel_sizes (bool|callable): Interpret sizes as relative values.
             Determine the interpretation of `vertices` using `shape`.
-            Uses `fc.extra.coord()` internally, see its `is_relative`
+            Uses `fcn.coord()` internally, see its `is_relative`
             parameter for more details.
 
     Returns:
@@ -2164,13 +2166,13 @@ def ellipsoid_specs(
         >>> ellipsoid_specs(2)
         (1.0, ('ellipsoid', (0.25, 0.25)), (0.0, 0.0), (0.0,), (0.5, 0.5))
     """
-    n_angles = fc.extra.square_size_to_num_tria(n_dim)
+    n_angles = fcn.square_size_to_num_tria(n_dim)
     geom_shape = (
         intensity,
-        ('ellipsoid', fc.base.auto_repeat(semisizes, n_dim, False, True)),
-        fc.base.auto_repeat(shift, n_dim, False, True),
-        fc.base.auto_repeat(angles, n_angles, False, True),
-        fc.base.auto_repeat(position, n_dim, False, True))
+        ('ellipsoid', fc.auto_repeat(semisizes, n_dim, False, True)),
+        fc.auto_repeat(shift, n_dim, False, True),
+        fc.auto_repeat(angles, n_angles, False, True),
+        fc.auto_repeat(position, n_dim, False, True))
     return geom_shape
 
 
@@ -2212,15 +2214,15 @@ def superellipsoid_specs(
         (1.0, ('superellipsoid', (0.25, 0.25), (2, 2)), (0.0, 0.0), (0.0,),\
  (0.5, 0.5))
     """
-    n_angles = fc.extra.square_size_to_num_tria(n_dim)
+    n_angles = fcn.square_size_to_num_tria(n_dim)
     geom_shape = (
         intensity,
         ('superellipsoid',
-         fc.base.auto_repeat(semisizes, n_dim, False, True),
-         fc.base.auto_repeat(indexes, n_dim, False, True)),
-        fc.base.auto_repeat(shift, n_dim, False, True),
-        fc.base.auto_repeat(angles, n_angles, False, True),
-        fc.base.auto_repeat(position, n_dim, False, True))
+         fc.auto_repeat(semisizes, n_dim, False, True),
+         fc.auto_repeat(indexes, n_dim, False, True)),
+        fc.auto_repeat(shift, n_dim, False, True),
+        fc.auto_repeat(angles, n_angles, False, True),
+        fc.auto_repeat(position, n_dim, False, True))
     return geom_shape
 
 
@@ -2258,13 +2260,13 @@ def cuboid_specs(
         >>> cuboid_specs(2)
         (1.0, ('cuboid', (0.25, 0.25)), (0.0, 0.0), (0.0,), (0.5, 0.5))
     """
-    n_angles = fc.extra.square_size_to_num_tria(n_dim)
+    n_angles = fcn.square_size_to_num_tria(n_dim)
     geom_shape = (
         intensity,
-        ('cuboid', fc.base.auto_repeat(semisizes, n_dim, False, True)),
-        fc.base.auto_repeat(shift, n_dim, False, True),
-        fc.base.auto_repeat(angles, n_angles, False, True),
-        fc.base.auto_repeat(position, n_dim, False, True))
+        ('cuboid', fc.auto_repeat(semisizes, n_dim, False, True)),
+        fc.auto_repeat(shift, n_dim, False, True),
+        fc.auto_repeat(angles, n_angles, False, True),
+        fc.auto_repeat(position, n_dim, False, True))
     return geom_shape
 
 
@@ -2307,16 +2309,16 @@ def prism_specs(
         >>> prism_specs(2)
         (1.0, ('prism', -1, (0.25,), (2,)), (0.0, 0.0), (0.0,), (0.5, 0.5))
     """
-    n_angles = fc.extra.square_size_to_num_tria(n_dim)
+    n_angles = fcn.square_size_to_num_tria(n_dim)
     geom_shape = (
         intensity,
         ('prism',
          axis,
-         fc.base.auto_repeat(semisizes, n_dim - 1, False, True),
-         fc.base.auto_repeat(indexes, n_dim - 1, False, True)),
-        fc.base.auto_repeat(shift, n_dim, False, True),
-        fc.base.auto_repeat(angles, n_angles, False, True),
-        fc.base.auto_repeat(position, n_dim, False, True))
+         fc.auto_repeat(semisizes, n_dim - 1, False, True),
+         fc.auto_repeat(indexes, n_dim - 1, False, True)),
+        fc.auto_repeat(shift, n_dim, False, True),
+        fc.auto_repeat(angles, n_angles, False, True),
+        fc.auto_repeat(position, n_dim, False, True))
     return geom_shape
 
 
@@ -2354,13 +2356,13 @@ def gradient_specs(
         >>> gradient_specs(2)
         (1.0, ('gradient', ((0, 1), (0, 1))), (0.0, 0.0), (0.0,), (0.5, 0.5))
     """
-    n_angles = fc.extra.square_size_to_num_tria(n_dim)
+    n_angles = fcn.square_size_to_num_tria(n_dim)
     geom_shape = (
         intensity,
-        ('gradient', fc.base.auto_repeat(gen_ranges, n_dim, True, True)),
-        fc.base.auto_repeat(shift, n_dim, False, True),
-        fc.base.auto_repeat(angles, n_angles, False, True),
-        fc.base.auto_repeat(position, n_dim, False, True))
+        ('gradient', fc.auto_repeat(gen_ranges, n_dim, True, True)),
+        fc.auto_repeat(shift, n_dim, False, True),
+        fc.auto_repeat(angles, n_angles, False, True),
+        fc.auto_repeat(position, n_dim, False, True))
     return geom_shape
 
 
@@ -2421,7 +2423,7 @@ def multi_render(
     if n_dim is None:
         n_dim = len(shape)
     else:
-        shape = fc.base.auto_repeat(shape, n_dim, False, True)
+        shape = fc.auto_repeat(shape, n_dim, False, True)
     inner_shape = [min(shape)] * n_dim
     affine_kws = \
         {} if affine_kws is None else dict(affine_kws)
@@ -2462,11 +2464,11 @@ def multi_render(
             if angles is None:
                 lin_mat = np.eye(n_dim)
             else:
-                lin_mat = fc.extra.angles2rotation(angles, n_dim)
-            shift = fc.extra.coord(inner_shape, shift, True, False)
-            lin_mat, offset = fc.extra.prepare_affine(
+                lin_mat = fcn.angles2rotation(angles, n_dim)
+            shift = fcn.coord(inner_shape, shift, True, False)
+            lin_mat, offset = fcn.prepare_affine(
                 inner_shape, lin_mat, shift)
-            rendered += fc.extra.reframe(
+            rendered += fcn.reframe(
                 intensity * sp.ndimage.affine_transform(
                     geom_arr.astype(dtype), lin_mat, offset, **affine_kws),
                 shape, position)

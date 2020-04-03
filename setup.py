@@ -142,6 +142,7 @@ setup(
         'appdirs',
         'setuptools',
         'flyingcircus',
+        'flyingcircus_numeric',
     ],
 
     setup_requires=[
