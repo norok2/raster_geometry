@@ -275,7 +275,7 @@ def bresenham_polygon(coords, seed=None):
         coord (tuple[int]): The coordinates of a point on the N-dim polygon.
     """
     if seed is not None:
-        seed %= len(coords)
+        seed = fc.valid_index(seed, len(coords))
         seeds = (seed,)
     else:
         seeds = range(len(coords))
@@ -1838,7 +1838,7 @@ def nd_superellipsoidal_prism(
             n_dim = 1 + \
                     fc.combine_iter_len((position, semisizes, indexes))
     assert (-n_dim <= axis < n_dim)
-    axis %= n_dim
+    axis = fc.valid_index(axis, n_dim)
     # separate shape/dims
     base_shape = tuple(dim for i, dim in enumerate(shape) if i != axis)
     extra_dim = shape[axis]
