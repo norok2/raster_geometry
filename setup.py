@@ -99,7 +99,7 @@ setup(
     # use_scm_version=True,
     version=fix_version(),
 
-    url='https://bitbucket.org/norok2/' + NAME.lower(),
+    url='https://github.com/norok2/' + NAME.lower(),
 
     author='Riccardo Metere',
     author_email='rick@metere.it',

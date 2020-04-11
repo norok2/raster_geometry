@@ -66,11 +66,11 @@ The recommended way of installing the software is through
     $ pip install raster_geometry
 
 Alternatively, you can clone the source repository from
-`Bitbucket <https://bitbucket.org/norok2/raster_geometry>`__:
+`GitHub <https://github.com/norok2/raster_geometry>`__:
 
 .. code:: bash
 
-    $ git clone git@bitbucket.org:norok2/raster_geometry.git
+    $ git clone git@github.com:norok2/raster_geometry.git
     $ cd raster_geometry
     $ pip install -e .
 
