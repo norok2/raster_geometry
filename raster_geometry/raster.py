@@ -1471,7 +1471,7 @@ def nd_lines(
             If True, position values are interpreted as relative,
             i.e. they are scaled for `shape` values.
             Otherwise, they are interpreted as absolute (in px).
-            Uses `flyingcircus.extra.coord()` internally.
+            Uses `flyingcircus_numeric.coord()` internally.
 
     Returns:
         rendered (np.ndarray[bool]): The rendered geometrical object.
@@ -1521,7 +1521,7 @@ def nd_curves(
             If True, position values are interpreted as relative,
             i.e. they are scaled for `shape` values.
             Otherwise, they are interpreted as absolute (in px).
-            Uses `flyingcircus.extra.coord()` internally.
+            Uses `flyingcircus_numeric.coord()` internally.
 
     Returns:
         rendered (np.ndarray[bool]): The rendered geometrical object.
@@ -1578,10 +1578,10 @@ def nd_cuboid(
             parameter for more details.
         rel_sizes (bool|callable): Interpret sizes as relative values.
             Determine the interpretation of `semisizes` using `shape`.
-            Uses `flyingcircus.extra.coord()` internally, see its `is_relative`
-            parameter for more details.
-        smoothing (bool|int|float|None): The smoothing of the border.
-            If None or False, no smoothing is performed and the data type of
+            Uses `flyingcircus_numeric.coord()` internally, see its
+            `is_relative` parameter for more details.
+        smoothing (bool|int|float): The smoothing of the border.
+            If False, no smoothing is performed and the data type of
             the result is bool.
             If int or float, smooths the border transition and the data type of
             the result is float.
@@ -1598,27 +1598,39 @@ def nd_cuboid(
     shape = fc.auto_repeat(shape, n_dim, check=True)
     position = fc.auto_repeat(position, n_dim, check=True)
     semisizes = fc.auto_repeat(semisizes, n_dim, check=True)
-    # fix relative units
+    # fix relative units (for semisizes)
     semisizes = fcn.coord(
         shape, semisizes, is_relative=rel_sizes, use_int=False)
-    xx = fcn.grid_coord(
-        shape, position, is_relative=rel_position, use_int=False)
     # create the rendered object
-    if smoothing:
-        rendered = np.ones(shape, dtype=float)
-        for x_i, semisize in zip(xx, semisizes):
-            rendered *= \
-                (1.0 - np.clip(np.abs(x_i) - semisize, 0.0, 1.0)) \
-                ** (1.0 / smoothing)
+    if smoothing is False:
+        # : legacy (slower) method
+        # # fix relative units (for position)
+        # xx = fcn.grid_coord(
+        #     shape, position, is_relative=rel_position, use_int=False)
+        # for x_i, semisize in zip(xx, semisizes):
+        #     rendered &= (np.abs(x_i) <= semisize)
+
+        # fix relative units (for position)
+        position = fcn.coord(
+            shape, position, is_relative=rel_position, use_int=False)
+        rendered = np.zeros(shape, dtype=np.bool_)
+        slicing = tuple(
+            slice(max(int(x - s + 0.5), 0), min(int(x + s + 1.0), d))
+            for x, s, d in zip(position, semisizes, shape))
+        rendered[slicing] = True
     else:
-        if isinstance(smoothing, (int, float)):
-            rendered = np.ones(shape, dtype=float)
+        # fix relative units (for position)
+        xx = fcn.grid_coord(
+            shape, position, is_relative=rel_position, use_int=False)
+        rendered = np.ones(shape, dtype=float)
+        if smoothing > 0:
+            for x_i, semisize in zip(xx, semisizes):
+                rendered *= \
+                    (1.0 - np.clip(np.abs(x_i) - semisize, 0.0, 1.0)) \
+                    ** (1.0 / smoothing)
+        else:
             for x_i, semisize in zip(xx, semisizes):
                 rendered *= (np.abs(x_i) <= semisize).astype(float)
-        else:
-            rendered = np.ones(shape, dtype=bool)
-            for x_i, semisize in zip(xx, semisizes):
-                rendered &= (np.abs(x_i) <= semisize)
     return rendered
 
 
@@ -1665,14 +1677,14 @@ def nd_superellipsoid(
             `is_relative` parameter for more details.
         rel_sizes (bool|callable): Interpret sizes as relative values.
             Determine the interpretation of `semisizes`.
-            Uses `flyingcircus.extra.coord()` internally, see its `is_relative`
-            parameter for more details.
-        smoothing (bool|int|float|None): The smoothing of the border.
-            If None or False, no smoothing is performed and the data type of
+            Uses `flyingcircus_numeric.coord()` internally, see its
+            `is_relative` parameter for more details.
+        smoothing (bool|int|float): The smoothing of the border.
+            If False, no smoothing is performed and the data type of
             the result is bool.
             If int or float, smooths the border transition and the data type of
             the result is float.
-            When the value is equal to 1 or True, the smoothing emulate
+            When the value is equal to 1 or True, the smoothing emulates
             the spatial anti-aliasing.
 
     Returns:
@@ -1701,12 +1713,13 @@ def nd_superellipsoid(
     rendered = np.zeros(shape, dtype=float)
     for x_i, semisize, index in zip(xx, semisizes, indexes):
         rendered += (np.abs(x_i / semisize) ** index)
-    if smoothing:
-        k = fc.prod(semisizes) ** (1 / index / n_dim / smoothing)
-        rendered = np.clip(1.0 - rendered, 0.0, 1.0 / k) * k
-    else:
+    if smoothing is False:
         rendered = rendered <= 1.0
-        if isinstance(smoothing, (int, float)):
+    else:
+        if smoothing > 0:
+            k = fc.prod(semisizes) ** (1 / index / n_dim / smoothing)
+            rendered = np.clip(1.0 - rendered, 0.0, 1.0 / k) * k
+        else:
             rendered = rendered.astype(float)
     return rendered
 
@@ -1741,8 +1754,8 @@ def nd_prism(
             `is_relative` parameter for more details.
         rel_sizes (bool|callable): Interpret sizes as relative values.
             Determine the interpretation of `size` using `extra_dim`.
-            Uses `flyingcircus.extra.coord()` internally, see its `is_relative`
-            parameter for more details.
+            Uses `flyingcircus_numeric.coord()` internally, see its
+            `is_relative` parameter for more details.
         smoothing (bool|int|float|None): The smoothing of the border.
             If None or False, no smoothing is performed and the data type of
             the result is bool.
@@ -1817,8 +1830,8 @@ def nd_superellipsoidal_prism(
             parameter for more details.
         rel_sizes (bool|callable): Interpret sizes as relative values.
             Determine the interpretation of `size` using `extra_dim`.
-            Uses `flyingcircus.extra.coord()` internally, see its `is_relative`
-            parameter for more details.
+            Uses `flyingcircus_numeric.coord()` internally, see its
+            `is_relative` parameter for more details.
         smoothing (bool|int|float|None): The smoothing of the border.
             If None or False, no smoothing is performed and the data type of
             the result is bool.
