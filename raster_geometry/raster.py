@@ -1611,7 +1611,7 @@ def nd_cuboid(
                 (1.0 - np.clip(np.abs(x_i) - semisize, 0.0, 1.0)) \
                 ** (1.0 / smoothing)
     else:
-        if type(smoothing) in (int, float):
+        if isinstance(smoothing, (int, float)):
             rendered = np.ones(shape, dtype=float)
             for x_i, semisize in zip(xx, semisizes):
                 rendered *= (np.abs(x_i) <= semisize).astype(float)
@@ -1706,7 +1706,7 @@ def nd_superellipsoid(
         rendered = np.clip(1.0 - rendered, 0.0, 1.0 / k) * k
     else:
         rendered = rendered <= 1.0
-        if type(smoothing) in (int, float):
+        if isinstance(smoothing, (int, float)):
             rendered = rendered.astype(float)
     return rendered
 
