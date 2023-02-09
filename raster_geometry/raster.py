@@ -2457,7 +2457,7 @@ def multi_render(
         n_dim=None,
         affine_kws=(('order', 0),),
         smoothing=False,
-        dtype=float):
+        dtype=np.double):
     """
     Render multiple geometrical objects into a single array.
 
